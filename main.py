@@ -1,4 +1,5 @@
 import requests
+from groq import Groq          # ← add this line
 from fastapi import FastAPI
 from dotenv import load_dotenv
 import os
@@ -23,3 +24,9 @@ def get_crypto(symbol: str):
         "volume_24h": data[symbol]["usd_24h_vol"],
         "change_24h": data[symbol]["usd_24h_change"],
     }
+
+@app.get("/crypto/explain")
+def explain_crypto(symbol: str):
+    # call Groq API here
+    # return AI explanation
+    pass
