@@ -2,6 +2,59 @@
 <html lang="en">
 <head>
     <title>Crypto AI Analyzer</title>
+
+    <style>
+        body {
+            background-color: #0f0f0f;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 60px auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 24px;
+        }
+
+        input {
+            padding: 10px;
+            width: 70%;
+            font-size: 16px;
+            background-color: #1e1e1e;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 6px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+
+        button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+        }
+
+        #marketData {
+            margin-top: 24px;
+            font-size: 14px;
+            color: #a0a0a0;
+        }
+
+        #result {
+            margin-top: 16px;
+            line-height: 1.7;
+            font-size: 15px;
+        }
+    </style>
 </head>
 <body>
     <h1>Crypto AI Analyzer</h1>
@@ -9,6 +62,7 @@
     <input type="text" id="symbolInput" placeholder="Enter symbol: BTC, ETH, SOL...">
     <button>Analyze</button>
 
+    <div id="marketData"></div>
     <div id="result"></div>
 
     <script>
@@ -17,6 +71,7 @@
         const input = document.getElementById("symbolInput");
         const button = document.querySelector("button");
         const result = document.getElementById("result");
+        const marketData = document.getElementById("marketData");
 
         // When the user changes what's in the input, re-enable the button
         input.addEventListener("input", function() {
@@ -26,21 +81,45 @@
             }
         });
 
+        // Pressing Enter does the same as clicking Analyze
+        input.addEventListener("keydown", function(event) {
+            if (event.key === "Enter" && !button.disabled) {
+                button.click();
+            }
+        });
+
         button.addEventListener("click", async function() {
             const symbol = input.value.trim().toUpperCase();
             if (!symbol) return;
 
-            // Disable button so it can't be clicked again for the same symbol
             button.disabled = true;
             button.innerText = "Loading...";
             result.innerText = "";
+            marketData.innerText = "";
 
-            const response = await fetch(`/crypto/explain?symbol=${symbol}`);
-            const data = await response.json();
+            // Call both endpoints at the same time
+            const [explainRes, cryptoRes] = await Promise.all([
+                fetch(`/crypto/explain?symbol=${symbol}`),
+                fetch(`/crypto?symbol=${symbol}`)
+            ]);
+
+            const explainData = await explainRes.json();
+            const cryptoData = await cryptoRes.json();
 
             lastSymbol = symbol;
             button.innerText = "Done";
-            result.innerText = data.explanation || data.error;
+
+            const change = cryptoData.change_24h.toFixed(2);
+            const changeColor = change >= 0 ? "#22c55e" : "#ef4444";
+            const changeArrow = change >= 0 ? "▲" : "▼";
+            marketData.innerHTML = `
+                <span>Price: <strong>$${cryptoData.price.toLocaleString()}</strong></span>
+                &nbsp;|&nbsp;
+                <span>24h Change: <strong style="color:${changeColor}">${changeArrow} ${change}%</strong></span>
+                &nbsp;|&nbsp;
+                <span>Volume: <strong>$${cryptoData.volume_24h.toLocaleString()}</strong></span>
+            `;
+            result.innerText = explainData.explanation || explainData.error;
         });
     </script>
 
