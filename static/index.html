@@ -5,5 +5,44 @@
 </head>
 <body>
     <h1>Crypto AI Analyzer</h1>
+
+    <input type="text" id="symbolInput" placeholder="Enter symbol: BTC, ETH, SOL...">
+    <button>Analyze</button>
+
+    <div id="result"></div>
+
+    <script>
+        let lastSymbol = "";
+
+        const input = document.getElementById("symbolInput");
+        const button = document.querySelector("button");
+        const result = document.getElementById("result");
+
+        // When the user changes what's in the input, re-enable the button
+        input.addEventListener("input", function() {
+            if (input.value.toUpperCase() !== lastSymbol) {
+                button.disabled = false;
+                button.innerText = "Analyze";
+            }
+        });
+
+        button.addEventListener("click", async function() {
+            const symbol = input.value.trim().toUpperCase();
+            if (!symbol) return;
+
+            // Disable button so it can't be clicked again for the same symbol
+            button.disabled = true;
+            button.innerText = "Loading...";
+            result.innerText = "";
+
+            const response = await fetch(`/crypto/explain?symbol=${symbol}`);
+            const data = await response.json();
+
+            lastSymbol = symbol;
+            button.innerText = "Done";
+            result.innerText = data.explanation || data.error;
+        });
+    </script>
+
 </body>
 </html>
