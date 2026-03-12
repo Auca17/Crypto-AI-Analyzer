@@ -2,6 +2,7 @@ import requests
 from groq import Groq
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 import os
 load_dotenv()
@@ -24,7 +25,7 @@ SYMBOL_MAP = {
 
 @app.get("/")
 def home():
-    return {"message": "Crypto AI Analyzer running", "supported": list(SYMBOL_MAP.keys())}
+    return FileResponse("static/index.html")
 
 
 @app.get("/crypto/compare")
