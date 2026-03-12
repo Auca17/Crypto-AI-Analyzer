@@ -1,3 +1,14 @@
+"""FastAPI backend for live crypto snapshots and AI-powered explanations.
+
+This module exposes endpoints for:
+- Single coin market data
+- Single coin explanation
+- Two-coin comparison
+
+It also includes light caching for CoinGecko requests and fallback responses
+when the AI provider is unavailable.
+"""
+
 import os
 from pathlib import Path
 from time import time
@@ -39,6 +50,19 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 
 
 def get_symbol_details(symbol: str) -> tuple[str, dict[str, str]]:
+    """Resolve a user-provided ticker symbol into normalized symbol metadata.
+
+    Args:
+        symbol: Ticker entered by the user (for example, "btc" or "BTC").
+
+    Returns:
+        A tuple with:
+        - The normalized uppercase ticker symbol.
+        - The symbol metadata from SYMBOL_MAP.
+
+    Raises:
+        HTTPException: If the symbol is not supported by this app.
+    """
     cleaned_symbol = symbol.strip().upper()
     details = SYMBOL_MAP.get(cleaned_symbol)
     if not details:
@@ -51,6 +75,17 @@ def get_symbol_details(symbol: str) -> tuple[str, dict[str, str]]:
 
 
 def fetch_market_snapshot(coin_ids: list[str]) -> dict[str, Any]:
+    """Fetch market data from CoinGecko with a short in-memory cache.
+
+    Args:
+        coin_ids: CoinGecko coin IDs to fetch.
+
+    Returns:
+        CoinGecko JSON payload keyed by coin ID.
+
+    Raises:
+        HTTPException: If CoinGecko is unavailable or returns incomplete data.
+    """
     cache_key = tuple(coin_ids)
     cached = MARKET_CACHE.get(cache_key)
 
@@ -88,6 +123,7 @@ def fetch_market_snapshot(coin_ids: list[str]) -> dict[str, Any]:
 
 
 def get_sentiment(change_24h: float) -> str:
+    """Map a 24h percentage move to a simple sentiment label."""
     if change_24h > 2:
         return "bullish"
     if change_24h < -2:
@@ -96,6 +132,7 @@ def get_sentiment(change_24h: float) -> str:
 
 
 def build_market_payload(symbol: str, details: dict[str, str], entry: dict[str, Any]) -> dict[str, Any]:
+    """Build a normalized market payload used by API responses."""
     return {
         "symbol": symbol,
         "name": details["name"],
@@ -108,6 +145,7 @@ def build_market_payload(symbol: str, details: dict[str, str], entry: dict[str, 
 
 
 def build_fallback_explanation(market: dict[str, Any]) -> str:
+    """Generate a safe non-AI explanation if Groq is unavailable."""
     direction = "up" if market["change_24h"] >= 0 else "down"
     return (
         f"{market['name']} is trading near ${market['price']:,.2f} and is {direction} "
@@ -118,6 +156,7 @@ def build_fallback_explanation(market: dict[str, Any]) -> str:
 
 
 def build_fallback_comparison(first: dict[str, Any], second: dict[str, Any]) -> str:
+    """Generate a safe non-AI comparison summary for two assets."""
     winner = first if first["change_24h"] >= second["change_24h"] else second
     loser = second if winner is first else first
     return (
@@ -129,6 +168,15 @@ def build_fallback_comparison(first: dict[str, Any], second: dict[str, Any]) -> 
 
 
 def ask_ai(prompt: str, fallback_text: str) -> str:
+    """Call the Groq model and return fallback text on provider/network failures.
+
+    Args:
+        prompt: Final prompt sent to the AI model.
+        fallback_text: Text returned when AI cannot be reached.
+
+    Returns:
+        Model text when available; otherwise fallback_text.
+    """
     if client is None:
         return fallback_text
 
@@ -153,11 +201,13 @@ def ask_ai(prompt: str, fallback_text: str) -> str:
 
 @app.get("/")
 def home() -> FileResponse:
+    """Serve the frontend application entry page."""
     return FileResponse(BASE_DIR / "static" / "index.html")
 
 
 @app.get("/crypto")
 def get_crypto(symbol: str) -> dict[str, Any]:
+    """Return normalized live market data for a single ticker symbol."""
     normalized_symbol, details = get_symbol_details(symbol)
     market_data = fetch_market_snapshot([details["id"]])
     return build_market_payload(normalized_symbol, details, market_data[details["id"]])
@@ -165,6 +215,7 @@ def get_crypto(symbol: str) -> dict[str, Any]:
 
 @app.get("/crypto/explain")
 def explain_crypto(symbol: str) -> dict[str, str]:
+    """Return a beginner-friendly explanation for one coin's market snapshot."""
     normalized_symbol, details = get_symbol_details(symbol)
     market_data = fetch_market_snapshot([details["id"]])
     market = build_market_payload(normalized_symbol, details, market_data[details["id"]])
@@ -184,6 +235,7 @@ def explain_crypto(symbol: str) -> dict[str, str]:
 
 @app.get("/crypto/compare")
 def compare_crypto(symbol1: str, symbol2: str) -> dict[str, Any]:
+    """Compare two symbols and return market payloads plus an AI summary."""
     normalized_symbol1, details1 = get_symbol_details(symbol1)
     normalized_symbol2, details2 = get_symbol_details(symbol2)
 
