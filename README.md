@@ -1,89 +1,19 @@
 # AI Crypto Market Explainer
 
-A web app that fetches real-time cryptocurrency data and uses AI to explain the numbers in plain human language.
+A crypto analysis web app that combines live CoinGecko market data with AI-generated explanations so non-traders can understand what the numbers actually mean.
 
-Built with **FastAPI** (Python backend) + **CoinGecko API** (market data) + **Groq / Llama 3** (AI explanations).
+Built with FastAPI on the backend and a lightweight HTML, CSS, and JavaScript frontend.
 
----
+## Features
 
-## What it does
-
-- Type a crypto symbol like `BTC`, `ETH`, or `SOL`
-- Get the current price, 24h change, and trading volume
-- The AI explains what those numbers mean in simple language
-- See a sentiment badge: Bullish / Neutral / Bearish
-- Compare two coins side by side with an AI analysis
-- Search history tracks everything you checked this session
-
----
-
-## Preview
-
-```
-Symbol:  BTC
-Price:   $70,374
-Change:  ▲ 1.47%   [🟢 Bullish]
-
-"Bitcoin is showing moderate bullish momentum. The high trading volume
-of $45B suggests strong market interest, which could indicate continued
-positive movement in the short term..."
-```
-
----
-
-## Setup
-
-### 1. Clone the project
-
-```bash
-git clone https://github.com/your-username/crypto-ai-analyzer.git
-cd crypto-ai-analyzer
-```
-
-### 2. Create a virtual environment
-
-```powershell
-python -m venv venv
-venv\Scripts\activate
-```
-
-### 3. Install dependencies
-
-```powershell
-pip install -r requirements.txt
-```
-
-### 4. Get your free Groq API key
-
-> ⚠️ The API key is NOT included in this repo. Each user needs their own — it's free.
-
-1. Go to [https://console.groq.com](https://console.groq.com)
-2. Sign up for a free account
-3. Go to **API Keys** and create a new key
-4. Copy the key
-
-### 5. Create your `.env` file
-
-Create a file called `.env` in the project root with this content:
-
-```
-GROQ_API_KEY=paste_your_key_here
-```
-
-> The `.env` file is listed in `.gitignore` — it will never be uploaded to GitHub.
-
-### 6. Run the app
-
-```powershell
-uvicorn main:app --reload
-```
-
-Open your browser and go to:
-```
-http://localhost:8000
-```
-
----
+- Live crypto market snapshots for supported coins
+- AI-generated beginner-friendly explanations
+- Compare two coins with an AI summary
+- Sentiment badge based on 24-hour movement
+- Search history for the current browser session
+- Polished dashboard UI with loading and error states
+- Short backend cache to reduce repeated CoinGecko calls
+- Graceful fallback text if Groq is unavailable
 
 ## Supported coins
 
@@ -97,48 +27,98 @@ http://localhost:8000
 | ADA | Cardano |
 | DOGE | Dogecoin |
 
----
+## How it works
 
-## Project structure
+1. The user enters a symbol like `BTC` or compares `BTC` vs `ETH`.
+2. The backend fetches live price, volume, and 24-hour change from CoinGecko.
+3. The app sends a short market prompt to Groq using Llama 3.
+4. The UI shows structured stats, a sentiment label, and a plain-language explanation.
 
+## Setup
+
+### 1. Clone the project
+
+```bash
+git clone https://github.com/your-username/crypto-ai-analyzer.git
+cd crypto-ai-analyzer
 ```
-crypto-ai-analyzer/
-├── main.py              # FastAPI backend — all endpoints
-├── static/
-│   └── index.html       # Frontend — UI, styles, JavaScript
-├── .env                 # Your secret API key (never share this)
-├── .gitignore           # Tells Git to ignore .env
-├── requirements.txt     # All Python dependencies
-└── README.md
+
+### 2. Create and activate a virtual environment
+
+```powershell
+python -m venv venv
+venv\Scripts\activate
 ```
 
----
+### 3. Install dependencies
+
+```powershell
+pip install -r requirements.txt
+```
+
+### 4. Optional: add your Groq API key
+
+Create a `.env` file in the project root:
+
+```env
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+Important:
+The API key is not included in the repo and should never be shared publicly.
+
+If you do not add a Groq key:
+The project still runs. Market data will still work, and the backend will return a fallback explanation instead of a Groq-generated one.
+
+If someone else clones your project:
+They can either add their own Groq key or run the app without one and use the fallback summaries.
+
+### 5. Run the app
+
+```powershell
+uvicorn main:app --reload
+```
+
+Open:
+
+```text
+http://localhost:8000
+```
 
 ## API endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | Opens the web UI |
-| GET | `/crypto?symbol=BTC` | Returns raw market data |
-| GET | `/crypto/explain?symbol=BTC` | Returns AI explanation |
-| GET | `/crypto/compare?symbol1=BTC&symbol2=ETH` | Compares two coins with AI |
+| GET | `/` | Opens the main dashboard |
+| GET | `/crypto?symbol=BTC` | Returns market data for one coin |
+| GET | `/crypto/explain?symbol=BTC` | Returns an explanation for one coin |
+| GET | `/crypto/compare?symbol1=BTC&symbol2=ETH` | Returns two market payloads plus an AI comparison |
 
----
+## Project structure
 
-## Want to contribute or extend it?
+```text
+crypto-ai-analyzer/
+├── main.py
+├── static/
+│   └── index.html
+├── .env
+├── .gitignore
+├── requirements.txt
+└── README.md
+```
 
-Some ideas to keep building:
+## Main dependencies
 
-- Add more coins to `SYMBOL_MAP` in `main.py`
-- Add a 7-day price chart using a charting library
-- Add a price alert feature
-- Translate the AI response to different languages
+- `fastapi` for the backend API
+- `uvicorn` as the ASGI server
+- `requests` for CoinGecko requests
+- `groq` for AI completions
+- `python-dotenv` for loading `.env` values
 
----
+## Future upgrades
 
-## Tech stack
-
-- [FastAPI](https://fastapi.tiangolo.com/) — Python web framework
-- [CoinGecko API](https://www.coingecko.com/en/api) — Free crypto market data
-- [Groq](https://console.groq.com) — Free AI inference (Llama 3)
-- [python-dotenv](https://pypi.org/project/python-dotenv/) — Environment variable management
+- Add more supported coins
+- Add 7-day or 30-day charts
+- Add multilingual output
+- Add persistent search history
+- Deploy it online with a public demo
